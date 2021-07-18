@@ -1,14 +1,8 @@
 use futures::{FutureExt, StreamExt};
-use serde::Deserialize;
 use tokio::sync::mpsc;
 use warp::ws::{Message, WebSocket};
 
 use super::super::entity;
-
-#[derive(Deserialize, Debug)]
-pub struct TopicsRequest {
-	topics: Vec<String>,
-}
 
 pub async fn client_connection(
 	ws: WebSocket,
