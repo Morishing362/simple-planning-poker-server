@@ -6,6 +6,8 @@ use warp::ws::Message;
 
 pub type Clients = Arc<RwLock<HashMap<String, Client>>>;
 
+pub type Cards = Arc<RwLock<Vec<Card>>>;
+
 #[derive(Debug, Clone)]
 pub struct Client {
 	pub user_id: String,
@@ -16,6 +18,13 @@ pub struct Client {
 pub struct Content {
 	pub user_id: Option<String>,
 	pub message: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Card {
+	pub user_id: Option<String>,
+	pub number: usize,
+	pub open: bool,
 }
 
 #[derive(Serialize, Debug)]
