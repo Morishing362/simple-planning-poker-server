@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use serde_json;
 use std::convert::Infallible;
 use uuid::Uuid;
@@ -5,6 +6,16 @@ use warp::{http::StatusCode, reply::json, ws::Message, Reply};
 
 use super::controller::ws;
 use super::entity;
+
+#[derive(Serialize, Debug)]
+pub struct RegisterResponse {
+	pub url: String,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct RegisterRequest {
+	pub user_id: String,
+}
 
 pub async fn publish_handler(
 	body: entity::Content,
@@ -40,14 +51,14 @@ pub async fn publish_handler(
 }
 
 pub async fn register_handler(
-	body: entity::RegisterRequest,
+	body: RegisterRequest,
 	clients: entity::Clients,
 ) -> Result<impl Reply, Infallible> {
 	let user_id = body.user_id;
 	let uuid = Uuid::new_v4().simple().to_string();
 
 	register_client(uuid.clone(), user_id, clients).await;
-	Ok(json(&entity::RegisterResponse {
+	Ok(json(&RegisterResponse {
 		url: format!("ws://127.0.0.1:8000/ws/{}", uuid),
 	}))
 }
