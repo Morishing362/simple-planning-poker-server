@@ -1,3 +1,4 @@
+use serde_json;
 use std::convert::Infallible;
 use uuid::Uuid;
 use warp::{http::StatusCode, reply::json, ws::Message, Reply};
@@ -17,10 +18,21 @@ pub async fn publish_handler(
 			Some(v) => &client.user_id == v,
 			None => true,
 		})
-		.filter(|(_, client)| client.topics.contains(&body.topic))
 		.for_each(|(_, client)| {
 			if let Some(sender) = &client.sender {
-				let _ = sender.send(Ok(Message::text(body.message.clone())));
+				let content = entity::Content {
+					user_id: body.user_id.clone(),
+					message: body.message.clone(),
+				};
+				let message = serde_json::json!(&content).to_string();
+				// ----log----
+				println!(
+					"message from {}: {}",
+					body.user_id.clone().unwrap(),
+					body.message.clone(),
+				);
+				// -----------
+				let _ = sender.send(Ok(Message::text(message)));
 			}
 		});
 
@@ -54,7 +66,6 @@ async fn register_client(id: String, user_id: String, clients: entity::Clients) 
 			id,
 			entity::Client {
 				user_id,
-				topics: vec![String::from("cats")],
 				sender: None,
 			},
 		);

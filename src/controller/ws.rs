@@ -1,6 +1,5 @@
 use futures::{FutureExt, StreamExt};
 use serde::Deserialize;
-use serde_json::from_str;
 use tokio::sync::mpsc;
 use warp::ws::{Message, WebSocket};
 
@@ -38,14 +37,14 @@ pub async fn client_connection(
 				break;
 			}
 		};
-		client_msg(&id, msg, &clients).await;
+		client_msg(&id, msg).await;
 	}
 
 	clients.write().await.remove(&id);
 	println!("{} disconnected", id);
 }
 
-async fn client_msg(id: &str, msg: Message, clients: &entity::Clients) {
+async fn client_msg(id: &str, msg: Message) {
 	println!("received message from {}: {:?}", id, msg);
 	let message = match msg.to_str() {
 		Ok(v) => v,
@@ -54,18 +53,5 @@ async fn client_msg(id: &str, msg: Message, clients: &entity::Clients) {
 
 	if message == "ping" || message == "ping\n" {
 		return;
-	}
-
-	let topics_req: TopicsRequest = match from_str(&message) {
-		Ok(v) => v,
-		Err(e) => {
-			eprintln!("error while parsing message to topics request: {}", e);
-			return;
-		}
-	};
-
-	let mut locked = clients.write().await;
-	if let Some(v) = locked.get_mut(id) {
-		v.topics = topics_req.topics;
 	}
 }
