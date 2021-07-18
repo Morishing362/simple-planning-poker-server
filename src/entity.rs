@@ -26,13 +26,3 @@ pub struct Card {
 	pub number: usize,
 	pub open: bool,
 }
-
-#[derive(Serialize, Debug)]
-pub struct RegisterResponse {
-	pub url: String,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct RegisterRequest {
-	pub user_id: String,
-}
