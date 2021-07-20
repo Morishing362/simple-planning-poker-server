@@ -1,5 +1,3 @@
 # test-rust-server
 
-バックエンド
-
-楽しんで開発しよう
+Our first project's backend system repository.
