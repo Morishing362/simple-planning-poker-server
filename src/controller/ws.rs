@@ -31,21 +31,21 @@ pub async fn client_connection(
 				break;
 			}
 		};
-		client_msg(&id, msg).await;
+		println!("received message from {}: {:?}", id, msg);
+		// client_msg(&id, msg).await;
 	}
 
 	clients.write().await.remove(&id);
 	println!("{} disconnected", id);
 }
 
-async fn client_msg(id: &str, msg: Message) {
-	println!("received message from {}: {:?}", id, msg);
-	let message = match msg.to_str() {
-		Ok(v) => v,
-		Err(_) => return,
-	};
+// async fn client_msg(id: &str, msg: Message) {
+// 	let message = match msg.to_str() {
+// 		Ok(v) => v,
+// 		Err(_) => return,
+// 	};
 
-	if message == "ping" || message == "ping\n" {
-		return;
-	}
-}
+// 	if message == "ping" || message == "ping\n" {
+// 		return;
+// 	}
+// }
