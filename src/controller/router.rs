@@ -6,20 +6,26 @@ use super::super::handler;
 
 pub struct Router {
 	clients: entity::Clients,
+	field_cards: entity::FieldCards,
 }
 
 impl Router {
-	pub fn new(clients: entity::Clients) -> Router {
-		Router { clients: clients }
+	pub fn new(clients: entity::Clients, field_cards: entity::FieldCards) -> Router {
+		Router {
+			clients: clients,
+			field_cards: field_cards,
+		}
 	}
 
 	pub fn all_route(&self) -> impl Filter<Extract = impl Reply, Error = warp::Rejection> + Clone {
 		let register_routes = self.register_routes();
 		let publish_route = self.publish_route();
+		let card_route = self.card_route();
 		let ws_route = self.ws_route();
 		self.health_route()
 			.or(register_routes)
 			.or(publish_route)
+			.or(card_route)
 			.or(ws_route)
 	}
 
@@ -48,6 +54,14 @@ impl Router {
 			.and_then(handler::publish_handler)
 	}
 
+	fn card_route(&self) -> impl Filter<Extract = impl Reply, Error = warp::Rejection> + Clone {
+		warp::path!("card")
+			.and(warp::post())
+			.and(warp::body::json())
+			.and(with_field_cards(self.field_cards.clone()))
+			.and_then(handler::card_post_handler)
+	}
+
 	fn ws_route(&self) -> impl Filter<Extract = impl Reply, Error = warp::Rejection> + Clone {
 		warp::path("ws")
 			.and(warp::ws())
@@ -61,4 +75,10 @@ fn with_clients(
 	clients: entity::Clients,
 ) -> impl Filter<Extract = (entity::Clients,), Error = Infallible> + Clone {
 	warp::any().map(move || clients.clone())
+}
+
+fn with_field_cards(
+	field_cards: entity::FieldCards,
+) -> impl Filter<Extract = (entity::FieldCards,), Error = Infallible> + Clone {
+	warp::any().map(move || field_cards.clone())
 }

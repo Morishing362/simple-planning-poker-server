@@ -6,7 +6,7 @@ use warp::ws::Message;
 
 pub type Clients = Arc<RwLock<HashMap<String, Client>>>;
 
-pub type Cards = Arc<RwLock<Vec<Card>>>;
+pub type FieldCards = Arc<RwLock<Vec<Card>>>;
 
 #[derive(Debug, Clone)]
 pub struct Client {

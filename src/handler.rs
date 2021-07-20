@@ -17,6 +17,21 @@ pub struct RegisterRequest {
 	pub user_id: String,
 }
 
+pub async fn card_post_handler(
+	body: entity::Card,
+	field_cards: entity::FieldCards,
+) -> Result<impl Reply, Infallible> {
+	// WIP: Need to avoid duplicate.
+	field_cards.write().await.push(body);
+	println!("Here are...");
+	field_cards
+		.read()
+		.await
+		.iter()
+		.for_each(|card| println!("Card {}", card.number));
+	Ok(StatusCode::OK)
+}
+
 pub async fn publish_handler(
 	body: entity::Content,
 	clients: entity::Clients,
@@ -26,8 +41,8 @@ pub async fn publish_handler(
 		.await
 		.iter()
 		.filter(|(_, client)| match &body.user_id {
-			Some(v) => &client.user_id == v,
-			None => true,
+			Some(v) => true,
+			None => false,
 		})
 		.for_each(|(_, client)| {
 			if let Some(sender) = &client.sender {
@@ -36,13 +51,11 @@ pub async fn publish_handler(
 					message: body.message.clone(),
 				};
 				let message = serde_json::json!(&content).to_string();
-				// ----log----
 				println!(
 					"message from {}: {}",
 					body.user_id.clone().unwrap(),
 					body.message.clone(),
 				);
-				// -----------
 				let _ = sender.send(Ok(Message::text(message)));
 			}
 		});
