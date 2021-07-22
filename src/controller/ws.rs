@@ -1,6 +1,6 @@
 use futures::{FutureExt, StreamExt};
 use tokio::sync::mpsc;
-use warp::ws::{Message, WebSocket};
+use warp::ws::WebSocket;
 
 use super::super::entity;
 
@@ -32,20 +32,8 @@ pub async fn client_connection(
 			}
 		};
 		println!("received message from {}: {:?}", id, msg);
-		// client_msg(&id, msg).await;
 	}
 
 	clients.write().await.remove(&id);
 	println!("{} disconnected", id);
 }
-
-// async fn client_msg(id: &str, msg: Message) {
-// 	let message = match msg.to_str() {
-// 		Ok(v) => v,
-// 		Err(_) => return,
-// 	};
-
-// 	if message == "ping" || message == "ping\n" {
-// 		return;
-// 	}
-// }
