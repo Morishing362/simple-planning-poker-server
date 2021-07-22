@@ -13,9 +13,11 @@ use controller::router::Router;
 async fn main() {
     let clients: entity::Clients = Arc::new(RwLock::new(HashMap::new()));
 
-    let server_controller = Router::new(clients.clone());
+    let field_cards: entity::FieldCards = Arc::new(RwLock::new(Vec::new()));
 
-    let routes = server_controller.all_route();
+    let router = Router::new(clients.clone(), field_cards.clone());
+
+    let routes = router.all_route();
 
     warp::serve(routes).run(([127, 0, 0, 1], 8000)).await;
 }

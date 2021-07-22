@@ -1,14 +1,8 @@
 use futures::{FutureExt, StreamExt};
-use serde::Deserialize;
 use tokio::sync::mpsc;
-use warp::ws::{Message, WebSocket};
+use warp::ws::WebSocket;
 
 use super::super::entity;
-
-#[derive(Deserialize, Debug)]
-pub struct TopicsRequest {
-	topics: Vec<String>,
-}
 
 pub async fn client_connection(
 	ws: WebSocket,
@@ -37,21 +31,9 @@ pub async fn client_connection(
 				break;
 			}
 		};
-		client_msg(&id, msg).await;
+		println!("received message from {}: {:?}", id, msg);
 	}
 
 	clients.write().await.remove(&id);
 	println!("{} disconnected", id);
-}
-
-async fn client_msg(id: &str, msg: Message) {
-	println!("received message from {}: {:?}", id, msg);
-	let message = match msg.to_str() {
-		Ok(v) => v,
-		Err(_) => return,
-	};
-
-	if message == "ping" || message == "ping\n" {
-		return;
-	}
 }
