@@ -16,13 +16,13 @@ pub struct Client {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Content {
-	pub user_id: Option<String>,
+	pub user_id: String,
 	pub message: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Card {
-	pub user_id: Option<String>,
+	pub user_id: String,
 	pub number: usize,
 	pub open: bool,
 }

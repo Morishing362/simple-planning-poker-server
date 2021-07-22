@@ -1,5 +1,5 @@
 use core::convert::Infallible;
-use warp::{Filter, Reply};
+use warp::{Filter, Rejection, Reply};
 
 use super::super::entity;
 use super::super::handler;
@@ -17,7 +17,7 @@ impl Router {
 		}
 	}
 
-	pub fn all_route(&self) -> impl Filter<Extract = impl Reply, Error = warp::Rejection> + Clone {
+	pub fn all_route(&self) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
 		let register_routes = self.register_routes();
 		let publish_route = self.publish_route();
 		let card_route = self.card_route();
@@ -29,40 +29,46 @@ impl Router {
 			.or(ws_route)
 	}
 
-	fn health_route(&self) -> impl Filter<Extract = impl Reply, Error = warp::Rejection> + Clone {
+	fn health_route(&self) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
 		warp::path!("health").and_then(handler::health_handler)
 	}
 
-	fn register_routes(
-		&self,
-	) -> impl Filter<Extract = impl Reply, Error = warp::Rejection> + Clone {
-		warp::path("register")
+	fn register_routes(&self) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
+		let register_route = warp::path("register");
+		register_route
 			.and(warp::post())
 			.and(warp::body::json())
 			.and(with_clients(self.clients.clone()))
 			.and_then(handler::register_handler)
-			.or((warp::delete())
+			.or(register_route
+				.and(warp::delete())
 				.and(warp::path::param())
 				.and(with_clients(self.clients.clone()))
 				.and_then(handler::unregister_handler))
 	}
 
-	fn publish_route(&self) -> impl Filter<Extract = impl Reply, Error = warp::Rejection> + Clone {
+	fn publish_route(&self) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
 		warp::path!("publish")
 			.and(warp::body::json())
 			.and(with_clients(self.clients.clone()))
 			.and_then(handler::publish_handler)
 	}
 
-	fn card_route(&self) -> impl Filter<Extract = impl Reply, Error = warp::Rejection> + Clone {
-		warp::path!("card")
+	fn card_route(&self) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
+		let card_route = warp::path("card");
+		card_route
 			.and(warp::post())
 			.and(warp::body::json())
 			.and(with_field_cards(self.field_cards.clone()))
 			.and_then(handler::card_post_handler)
+			.or(card_route
+				.and(warp::delete())
+				.and(warp::path::param())
+				.and(with_field_cards(self.field_cards.clone()))
+				.and_then(handler::card_delete_handler))
 	}
 
-	fn ws_route(&self) -> impl Filter<Extract = impl Reply, Error = warp::Rejection> + Clone {
+	fn ws_route(&self) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
 		warp::path("ws")
 			.and(warp::ws())
 			.and(warp::path::param())
