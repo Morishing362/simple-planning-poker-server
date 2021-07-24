@@ -3,6 +3,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use warp;
 
+mod client_connection;
 mod controller;
 mod entity;
 mod handler;
@@ -15,7 +16,12 @@ async fn main() {
 
     let field_cards: entity::FieldCards = Arc::new(RwLock::new(Vec::new()));
 
-    let router = Router::new(clients.clone(), field_cards.clone());
+    let field_state: entity::FieldState = Arc::new(RwLock::new(entity::TableState {
+        result: 0.0,
+        is_open: false,
+    }));
+
+    let router = Router::new(clients.clone(), field_cards.clone(), field_state.clone());
 
     let routes = router.all_route();
 

@@ -2,12 +2,14 @@ use futures::{FutureExt, StreamExt};
 use tokio::sync::mpsc;
 use warp::ws::WebSocket;
 
-use super::super::entity;
+use super::controller::client_router;
+use super::entity;
 
 pub async fn client_connection(
 	ws: WebSocket,
 	id: String,
 	clients: entity::Clients,
+	client_router: client_router::ClientRouter,
 	mut client: entity::Client,
 ) {
 	let (client_ws_sender, mut client_ws_rcv) = ws.split();
@@ -25,13 +27,14 @@ pub async fn client_connection(
 
 	while let Some(result) = client_ws_rcv.next().await {
 		let msg = match result {
-			Ok(msg) => msg,
+			Ok(m) => m,
 			Err(e) => {
 				eprintln!("error receiving ws message for id: {}): {}", id.clone(), e);
 				break;
 			}
 		};
-		println!("received message from {}: {:?}", id, msg);
+		println!("received message from {}: {:?}", id, &msg);
+		client_router.route(msg).await;
 	}
 
 	clients.write().await.remove(&id);

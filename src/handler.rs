@@ -4,7 +4,8 @@ use std::convert::Infallible;
 use uuid::Uuid;
 use warp::{http::StatusCode, reply::json, ws::Message, Rejection, Reply};
 
-use super::controller::ws;
+use super::client_connection;
+use super::controller::client_router;
 use super::entity;
 
 #[derive(Serialize, Debug)]
@@ -17,51 +18,10 @@ pub struct RegisterRequest {
 	pub user_id: String,
 }
 
-pub async fn card_post_handler(
-	body: entity::Card,
-	field_cards: entity::FieldCards,
-) -> Result<impl Reply, Rejection> {
-	let already_posted = field_cards
-		.read()
-		.await
-		.iter()
-		.any(|card| body.user_id == card.user_id);
-
-	if already_posted {
-		Err(warp::reject::reject())
-	} else {
-		field_cards.write().await.push(body);
-		print_field_cards(field_cards.clone()).await;
-		Ok(StatusCode::OK)
-	}
-}
-
-pub async fn card_delete_handler(
-	user_id: String,
-	field_cards: entity::FieldCards,
-) -> Result<impl Reply, Rejection> {
-	let index = field_cards
-		.read()
-		.await
-		.iter()
-		.position(|card| &card.user_id == &user_id);
-
-	if let Some(i) = index {
-		field_cards.write().await.remove(i);
-		print_field_cards(field_cards.clone()).await;
-		Ok(StatusCode::OK)
-	} else {
-		Err(warp::reject::reject())
-	}
-}
-
-pub async fn publish_handler(
-	body: entity::Content,
-	clients: entity::Clients,
-) -> Result<impl Reply, Infallible> {
+pub async fn publish(body: entity::MessageContent, clients: entity::Clients) {
 	clients.read().await.iter().for_each(|(_, client)| {
 		if let Some(sender) = &client.sender {
-			let content = entity::Content {
+			let content = entity::MessageContent {
 				user_id: body.user_id.clone(),
 				message: body.message.clone(),
 			};
@@ -74,7 +34,73 @@ pub async fn publish_handler(
 			let _ = sender.send(Ok(Message::text(message)));
 		}
 	});
+}
 
+pub async fn card_post(body: entity::Card, field_cards: entity::FieldCards) {
+	let already_posted = field_cards
+		.read()
+		.await
+		.iter()
+		.any(|card| body.user_id == card.user_id);
+
+	if !already_posted {
+		field_cards.write().await.push(body);
+		print_field_cards(field_cards.clone()).await;
+	}
+}
+
+pub async fn card_delete(user_id: String, field_cards: entity::FieldCards) {
+	let index = field_cards
+		.read()
+		.await
+		.iter()
+		.position(|card| &card.user_id == &user_id);
+
+	if let Some(i) = index {
+		field_cards.write().await.remove(i);
+		print_field_cards(field_cards.clone()).await;
+	}
+}
+
+pub async fn open_result_handler(
+	field_cards: entity::FieldCards,
+	field_state: entity::FieldState,
+) -> Result<impl Reply, Infallible> {
+	if field_state.read().await.is_open {
+		println!("Cards are already open.");
+	} else {
+		let mut sum: f64 = 0.0;
+		let mut size: f64 = 0.0;
+		field_cards.read().await.iter().for_each(|card| {
+			sum += card.number as f64;
+			size += 1.0;
+		});
+		let mut new_state = field_state.write().await;
+		*new_state = entity::TableState {
+			result: sum / size,
+			is_open: true,
+		};
+		println!("Cards are open.");
+	}
+	Ok(StatusCode::OK)
+}
+
+pub async fn clean_cards_handler(
+	field_cards: entity::FieldCards,
+	field_state: entity::FieldState,
+) -> Result<impl Reply, Infallible> {
+	if !field_state.read().await.is_open {
+		println!("Cards are already cleared.");
+	} else {
+		field_cards.write().await.clear();
+		let mut new_state = field_state.write().await;
+		*new_state = entity::TableState {
+			result: 0.0,
+			is_open: false,
+		};
+		print_field_cards(field_cards.clone()).await;
+		println!("Cards are cleared.");
+	}
 	Ok(StatusCode::OK)
 }
 
@@ -131,10 +157,13 @@ pub async fn ws_handler(
 	ws: warp::ws::Ws,
 	id: String,
 	clients: entity::Clients,
+	client_router: client_router::ClientRouter,
 ) -> Result<impl Reply, warp::Rejection> {
 	let client = clients.read().await.get(&id).cloned();
 	match client {
-		Some(c) => Ok(ws.on_upgrade(move |socket| ws::client_connection(socket, id, clients, c))),
+		Some(c) => Ok(ws.on_upgrade(move |socket| {
+			client_connection::client_connection(socket, id, clients, client_router, c)
+		})),
 		None => Err(warp::reject::not_found()),
 	}
 }
