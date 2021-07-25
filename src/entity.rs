@@ -16,6 +16,18 @@ pub struct Input<T> {
 	pub data: HashMap<String, T>,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Output<T: Serialize> {
+	pub proc_id: String,
+	pub data: T,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct OutputVec<T: Serialize> {
+	pub proc_id: String,
+	pub data: Vec<T>,
+}
+
 #[derive(Debug, Clone)]
 pub struct Client {
 	pub user_id: String,
@@ -28,7 +40,7 @@ pub struct MessageContent {
 	pub message: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Card {
 	pub user_id: String,
 	pub number: usize,

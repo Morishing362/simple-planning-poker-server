@@ -1,26 +1,16 @@
 use super::super::entity;
-use super::super::handler;
+use super::super::usecase;
 
 use warp;
 
 #[derive(Clone)]
 pub struct ClientRouter {
-	clients: entity::Clients,
-	field_cards: entity::FieldCards,
-	field_state: entity::FieldState,
+	usecase: usecase::Usecase,
 }
 
 impl ClientRouter {
-	pub fn new(
-		clients: entity::Clients,
-		field_cards: entity::FieldCards,
-		field_state: entity::FieldState,
-	) -> ClientRouter {
-		ClientRouter {
-			clients: clients,
-			field_cards: field_cards,
-			field_state: field_state,
-		}
+	pub fn new(usecase: usecase::Usecase) -> ClientRouter {
+		ClientRouter { usecase: usecase }
 	}
 
 	pub async fn route(&self, message: warp::ws::Message) {
@@ -35,18 +25,24 @@ impl ClientRouter {
 				user_id: data["user_id"].clone(),
 				message: data["message"].clone(),
 			};
-			handler::publish(message_content, self.clients.clone()).await;
+			self.usecase.publish(message_content).await;
 		}
 		if proc_id == String::from("card_post") {
 			let card = entity::Card {
 				user_id: data["user_id"].clone(),
 				number: data["number"].clone().parse::<usize>().unwrap(),
 			};
-			handler::card_post(card, self.field_cards.clone()).await;
+			self.usecase.card_post(card).await;
 		}
 		if proc_id == String::from("card_delete") {
 			let user_id = data["user_id"].clone();
-			handler::card_delete(user_id, self.field_cards.clone()).await;
+			self.usecase.card_delete(user_id).await;
+		}
+		if proc_id == String::from("result") {
+			self.usecase.result().await;
+		}
+		if proc_id == String::from("clean") {
+			self.usecase.clean().await;
 		}
 	}
 }
