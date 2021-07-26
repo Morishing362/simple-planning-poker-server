@@ -9,10 +9,20 @@ pub fn all_route(
 	clients: entity::Clients,
 	c_router: client_router::ClientRouter,
 ) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
+	let cors = warp::cors()
+		.allow_any_origin()
+		.allow_headers(vec![
+			"Sec-WebSocket-Accept",
+			"User-Agent",
+			"Access-Control-Allow-Origin",
+			"Access-Control-Request-Headers",
+			"Content-Type",
+		])
+		.allow_methods(vec!["GET", "POST", "DELETE"]);
 	let health = health_route();
 	let register = register_route(clients.clone());
 	let ws = ws_route(clients.clone(), c_router.clone());
-	health.or(register).or(ws)
+	health.or(register).or(ws).with(cors.clone())
 }
 
 pub fn health_route() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
