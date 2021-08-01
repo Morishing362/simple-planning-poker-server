@@ -43,6 +43,18 @@ pub async fn client_connection(
 			}
 		};
 		println!("received message from {}: {:?}", id, &msg);
+		if msg.is_close() {
+			let user = clients.read().await[&id].clone();
+			let message = Message::text(output_message(
+				String::from("card_delete"),
+				entity::MessageContent {
+					user_id: user.user_id,
+					message: String::from("card delete"),
+				},
+			));
+			client_router.route(message).await;
+			break;
+		}
 		client_router.route(msg).await;
 	}
 
@@ -56,6 +68,14 @@ pub async fn client_connection(
 	send_to_all(message, clients.clone()).await;
 
 	println!("{} disconnected", id);
+}
+
+fn output_message<T: Serialize>(proc_id: String, data: T) -> String {
+	let output_vec = entity::Output::<T> {
+		proc_id: String::from(proc_id),
+		data: data,
+	};
+	serde_json::json!(output_vec).to_string()
 }
 
 fn output_vec_message<T: Serialize>(proc_id: String, vector: Vec<T>) -> String {
