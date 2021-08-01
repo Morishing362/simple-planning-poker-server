@@ -44,5 +44,8 @@ impl ClientRouter {
 		if proc_id == String::from("clean") {
 			self.usecase.clean().await;
 		}
+		if proc_id == String::from("refresh") {
+			self.usecase.refresh().await;
+		}
 	}
 }

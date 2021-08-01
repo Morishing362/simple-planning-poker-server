@@ -101,20 +101,27 @@ impl Usecase {
 	}
 
 	pub async fn clean(&self) {
-		if !self.field_state.read().await.is_open {
-			println!("Cards are already cleared.");
-		} else {
-			self.field_cards.write().await.clear();
-			let mut new_state = self.field_state.write().await;
-			let data = entity::TableState {
-				result: 0.0,
-				is_open: false,
-			};
-			*new_state = data.clone();
-			let message = self.output_message(String::from("cleaned"), data.clone());
-			self.send_to_all(message).await;
-			println!("Table state: {:?}", data);
-		}
+		println!("Cards are closed.");
+		self.field_cards.write().await.clear();
+		let mut new_state = self.field_state.write().await;
+		let data = entity::TableState {
+			result: 0.0,
+			is_open: false,
+		};
+		*new_state = data.clone();
+		let message = self.output_message(String::from("cleaned"), data.clone());
+		self.send_to_all(message).await;
+		println!("Table state: {:?}", data);
+	}
+
+	pub async fn refresh(&self) {
+		let mut cards: Vec<entity::Card> = vec![];
+		self.field_cards.read().await.iter().for_each(|card| {
+			cards.push(card.clone());
+		});
+		let message = self.output_vec_message(String::from("refreshed"), cards);
+		self.send_to_all(message).await;
+		self.print_field_cards().await;
 	}
 
 	fn output_message<T: Serialize>(&self, proc_id: String, data: T) -> String {
@@ -124,6 +131,7 @@ impl Usecase {
 		};
 		serde_json::json!(output_vec).to_string()
 	}
+
 	fn output_vec_message<T: Serialize>(&self, proc_id: String, vector: Vec<T>) -> String {
 		let output_vec = entity::OutputVec::<T> {
 			proc_id: String::from(proc_id),
